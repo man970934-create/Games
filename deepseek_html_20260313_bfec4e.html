@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory · игра для портфолио</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(145deg, #0b1729 0%, #1a2f42 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+
+        .game {
+            max-width: 650px;
+            width: 100%;
+            background: rgba(18, 28, 40, 0.75);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 48px;
+            padding: 28px 24px 36px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(120, 180, 255, 0.15) inset;
+            border: 1px solid rgba(90, 150, 255, 0.2);
+        }
+
+        .game__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .game__title {
+            font-size: 2.2rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #b3e0ff, #a0d0ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: 1px;
+            text-shadow: 0 0 8px rgba(0, 160, 255, 0.5);
+        }
+
+        .stats {
+            display: flex;
+            gap: 28px;
+            background: rgba(0, 20, 40, 0.6);
+            padding: 10px 24px;
+            border-radius: 60px;
+            border: 1px solid rgba(70, 150, 255, 0.25);
+            backdrop-filter: blur(4px);
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #c1d9f0;
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            background: #102433;
+            padding: 4px 14px;
+            border-radius: 40px;
+            color: white;
+            font-weight: 600;
+            min-width: 50px;
+            text-align: center;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5), 0 2px 0 #2e4b70;
+        }
+
+        .new-game-btn {
+            background: linear-gradient(145deg, #1e3b5a, #12314b);
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 12px 32px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 8px 0 #0b1d2e, 0 4px 20px rgba(0, 180, 255, 0.3);
+            transition: all 0.1s ease;
+            border: 1px solid rgba(100, 180, 255, 0.4);
+            letter-spacing: 0.5px;
+            margin-top: 8px;
+            width: fit-content;
+        }
+
+        .new-game-btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 2px 0 #0b1d2e, 0 4px 20px rgba(0, 180, 255, 0.3);
+        }
+
+        .new-game-btn:hover {
+            background: linear-gradient(145deg, #244b70, #173c5e);
+            border-color: rgba(150, 210, 255, 0.7);
+            box-shadow: 0 8px 0 #0f2538, 0 6px 25px #0088ff80;
+        }
+
+        /* Сетка карточек */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin: 28px 0 18px;
+        }
+
+        .card {
+            aspect-ratio: 1 / 1;
+            background: rgba(25, 45, 70, 0.9);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.4rem;
+            cursor: pointer;
+            box-shadow: 0 10px 0 #0d1e2e, 0 0 0 2px #2d506e inset, 0 0 15px #0050a0;
+            transition: all 0.15s ease;
+            transform: translateY(0);
+            color: #f0fcff;
+            text-shadow: 0 2px 5px black;
+            user-select: none;
+        }
+
+        .card:active:not(.open):not(.matched) {
+            transform: translateY(5px);
+            box-shadow: 0 5px 0 #0d1e2e, 0 0 0 2px #3f78b0 inset;
+        }
+
+        /* открытая карточка (временная) */
+        .card.open {
+            background: linear-gradient(145deg, #3070a0, #1d5080);
+            box-shadow: 0 0 0 3px #8cc6ff, 0 10px 0 #123a5a, 0 0 30px #0099ff;
+            transform: scale(1.02);
+        }
+
+        /* найденная пара (постоянно открыта) */
+        .card.matched {
+            background: radial-gradient(circle at 30% 30%, #3c8f6c, #1c5a44);
+            box-shadow: 0 0 0 3px #9effc6, 0 10px 0 #13422e, 0 0 40px #34e09f;
+            cursor: default;
+            filter: brightness(1.1);
+            transform: translateY(0) scale(1.02);
+        }
+
+        /* закрытая карточка — символ "?" */
+        .card:not(.open):not(.matched)::before {
+            content: "?";
+            font-size: 3.8rem;
+            font-weight: 700;
+            color: rgba(210, 235, 255, 0.9);
+            text-shadow: 0 4px 0 #002244, 0 0 15px white;
+            display: block;
+            line-height: 1;
+        }
+
+        /* у открытых и найденных убираем псевдоэлемент, показываем data-value через textContent */
+        .card.open::before,
+        .card.matched::before {
+            display: none;
+        }
+
+        /* сообщение о победе */
+        .victory-message {
+            background: rgba(30, 200, 140, 0.25);
+            backdrop-filter: blur(6px);
+            border: 2px solid #a0ffc0;
+            color: #e2ffe8;
+            font-size: 1.6rem;
+            font-weight: 600;
+            padding: 16px 24px;
+            border-radius: 60px;
+            text-align: center;
+            margin-top: 20px;
+            box-shadow: 0 0 30px #00d9ff80;
+            transition: opacity 0.3s;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .victory-message.show {
+            opacity: 1;
+        }
+
+        /* адаптивность */
+        @media (max-width: 500px) {
+            .game {
+                padding: 20px 16px;
+                border-radius: 32px;
+            }
+            .game__title {
+                font-size: 1.8rem;
+            }
+            .stats {
+                gap: 15px;
+                padding: 6px 18px;
+            }
+            .stat-item {
+                font-size: 1rem;
+            }
+            .card {
+                font-size: 2.2rem;
+            }
+            .card:not(.open):not(.matched)::before {
+                font-size: 2.8rem;
+            }
+            .new-game-btn {
+                font-size: 1rem;
+                padding: 10px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="game">
+    <div class="game__header">
+        <h1 class="game__title">🎴 memory</h1>
+        <div class="stats">
+            <div class="stat-item">🎯 ходы <span class="stat-value" id="movesDisplay">0</span></div>
+            <div class="stat-item">✅ пары <span class="stat-value" id="pairsDisplay">0/8</span></div>
+        </div>
+    </div>
+
+    <!-- Сетка с карточками -->
+    <div class="cards-grid" id="cardsGrid"></div>
+
+    <!-- Кнопка новой игры и сообщение -->
+    <div style="display: flex; justify-content: center;">
+        <button class="new-game-btn" id="newGameBtn">🔄 новая игра</button>
+    </div>
+    <div class="victory-message" id="victoryMessage">✨ Поздравляем! Все пары найдены ✨</div>
+</div>
+
+<script>
+    (function() {
+        "use strict";
+
+        // ----- Настройки игры -----
+        const PAIRS_COUNT = 8;                // 8 пар → 16 карт
+        const BASE_VALUES = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼']; // эмоджи для пар
+        // (можно заменить на любые символы/цифры, но эмоджи наглядны)
+
+        // DOM элементы
+        const grid = document.getElementById('cardsGrid');
+        const movesSpan = document.getElementById('movesDisplay');
+        const pairsSpan = document.getElementById('pairsDisplay');
+        const newGameBtn = document.getElementById('newGameBtn');
+        const victoryMsg = document.getElementById('victoryMessage');
+
+        // Состояние игры
+        let cardsElements = [];            // массив DOM-карточек (для быстрого доступа, но не обязателен)
+        let openedCards = [];              // ссылки на текущие открытые карточки (макс 2)
+        let lockBoard = false;             // блокировка доски во время анимации/проверки
+        let moves = 0;
+        let matchedPairs = 0;
+        let totalPairs = PAIRS_COUNT;
+        let flipTimeout = null;             // для отмены таймера закрытия
+
+        // ----- Утилиты -----
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // Обновление счётчиков на панели
+        function updateStats() {
+            movesSpan.textContent = moves;
+            pairsSpan.textContent = `${matchedPairs}/${totalPairs}`;
+        }
+
+        // Показать сообщение о победе
+        function showVictory() {
+            victoryMsg.classList.add('show');
+            // автоматически скрыть через 3 секунды
+            setTimeout(() => {
+                victoryMsg.classList.remove('show');
+            }, 3000);
+        }
+
+        // Очистить таймер, если висит
+        function clearPendingTimeout() {
+            if (flipTimeout) {
+                clearTimeout(flipTimeout);
+                flipTimeout = null;
+            }
+        }
+
+        // Закрыть две карточки (при несовпадении)
+        function closeMismatchedCards(cardA, cardB) {
+            // Убираем класс open, возвращаем текст "?" (но он управляется псевдоэлементом, текст не важен)
+            cardA.classList.remove('open');
+            cardB.classList.remove('open');
+            // Сбрасываем текстовое содержимое, чтобы работал псевдоэлемент "?".
+            // При открытии мы устанавливали textContent = data-value. Сейчас вернём пустоту,
+            // чтобы снова отображался "?" через ::before.
+            cardA.textContent = '';
+            cardB.textContent = '';
+            openedCards = [];
+        }
+
+        // Обработка клика по карточке
+        function handleCardClick(event) {
+            const card = event.currentTarget; // так как вешаем на каждую карточку
+
+            // Условия, при которых клик игнорируется
+            if (lockBoard) return;                       // доска заблокирована (проверка/анимация)
+            if (card.classList.contains('matched')) return; // уже найденная пара
+            if (card.classList.contains('open')) return;    // уже открыта (не даём повторно)
+            if (matchedPairs === totalPairs) return;       // игра уже завершена
+
+            // Если уже открыто ровно 2 карты — не должны сюда попасть, но на всякий случай
+            if (openedCards.length === 2) return;
+
+            // --- открываем карточку ---
+            // Запоминаем значение из data-value
+            const cardValue = card.dataset.value;
+            // Отображаем эмоджи вместо "?"
+            card.textContent = cardValue;
+            card.classList.add('open');
+            openedCards.push(card);
+
+            // Если это первая открытая карта — ничего не проверяем
+            if (openedCards.length === 1) {
+                return;
+            }
+
+            // --- открыта вторая карта ---
+            // Увеличиваем счётчик ходов
+            moves++;
+            const [cardA, cardB] = openedCards;
+
+            // Сравниваем значения
+            if (cardA.dataset.value === cardB.dataset.value) {
+                // Совпадение!
+                cardA.classList.remove('open');
+                cardB.classList.remove('open');
+                cardA.classList.add('matched');
+                cardB.classList.add('matched');
+
+                // Оставляем текст (эмоджи) видимым, убираем возможность клика
+                matchedPairs++;
+                openedCards = [];
+
+                // Обновим статистику
+                updateStats();
+
+                // Проверка победы
+                if (matchedPairs === totalPairs) {
+                    showVictory();
+                }
+                // Доска не блокируется, можно продолжать
+            } else {
+                // Не совпали — блокируем доску и ставим таймер закрытия
+                lockBoard = true;
+                updateStats();  // ход уже учли
+
+                // Закрываем карточки через 800 мс
+                clearPendingTimeout(); // на всякий случай
+                flipTimeout = setTimeout(() => {
+                    // закрываем эти же карточки (но они всё ещё в openedCards)
+                    closeMismatchedCards(cardA, cardB);
+                    lockBoard = false;
+                    flipTimeout = null;
+                }, 800);
+            }
+
+            // Обновляем счётчики (для совпадения уже обновили, для несовпадения тоже сделали)
+            // Но после совпадения не забудем обновить ещё раз, но updateStats уже вызвали.
+            // Для несовпадения тоже вызвали выше.
+            // Перестраховка:
+            updateStats();
+        }
+
+        // Создание новой колоды и полный сброс
+        function initGame() {
+            // Очищаем сетку
+            grid.innerHTML = '';
+
+            // Сбрасываем таймеры и переменные
+            clearPendingTimeout();
+            lockBoard = false;
+            openedCards = [];
+            moves = 0;
+            matchedPairs = 0;
+            updateStats();
+
+            // Создаём перемешанный массив значений (каждое по 2 раза)
+            let doubled = [...BASE_VALUES, ...BASE_VALUES];
+            if (doubled.length !== totalPairs * 2) {
+                // подстраховка: если BASE_VALUES изменили, обрежем до нужного числа пар
+                doubled = BASE_VALUES.slice(0, totalPairs);
+                doubled = [...doubled, ...doubled];
+            }
+            const shuffledValues = shuffleArray(doubled);
+
+            // Создаём карточки
+            shuffledValues.forEach((value, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.dataset.value = value;
+                card.dataset.index = index;
+                // текст пустой, чтобы работал псевдоэлемент "?" (через ::before)
+                card.textContent = ''; 
+                card.addEventListener('click', handleCardClick);
+                grid.appendChild(card);
+            });
+
+            // скрываем сообщение победы
+            victoryMsg.classList.remove('show');
+        }
+
+        // ----- Обработчик кнопки "Новая игра" -----
+        newGameBtn.addEventListener('click', () => {
+            initGame();
+        });
+
+        // ----- Старт игры при загрузке -----
+        initGame();
+
+        // Дополнительно: чтобы не сломать игру при быстрых кликах, учтём краевые случаи.
+        // Функция closeMismatchedCards уже сбрасывает openedCards.
+        // Но если вдруг после таймера карточки уже были изменены (например, начата новая игра),
+        // проверка в таймере должна использовать актуальные ссылки. Но благодаря lockBoard,
+        // во время таймера новая игра не запустится? Может, если нажать кнопку "Новая игра" во время таймера.
+        // Обработаем: при клике на новую игру вызывается initGame, который очистит таймер и пересоздаст карточки,
+        // старые ссылки в openedCards останутся, но они уже не в DOM, и будущие вызовы не страшны.
+        // Но чтобы избежать потенциальной ошибки, добавим очистку таймера в initGame (уже есть).
+    })();
+</script>
+</body>
+</html>
